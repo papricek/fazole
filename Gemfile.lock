@@ -2,12 +2,14 @@ PATH
   remote: .
   specs:
     fazole (0.1.0)
+      builder
       ruby_llm
 
 GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
+    builder (3.3.0)
     date (3.5.1)
     dotenv (3.2.0)
     erb (6.0.1)
