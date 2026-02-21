@@ -35,6 +35,30 @@ def output_basename(invoice)
   parts.join("-")
 end
 
+def unique_path(dir, basename, ext)
+  path = File.join(dir, "#{basename}#{ext}")
+  n = 1
+  while File.exist?(path)
+    path = File.join(dir, "#{basename}-#{n}#{ext}")
+    n += 1
+  end
+  path
+end
+
+CSV_HEADERS = [
+  "Původní soubor", "Nový soubor", "Typ dokladu", "Číslo faktury",
+  "Datum vystavení", "DÚZP", "Datum splatnosti",
+  "Dodavatel", "IČO dodavatele", "DIČ dodavatele",
+  "Ulice dodavatele", "Město dodavatele", "PSČ dodavatele",
+  "Odběratel", "IČO odběratele", "DIČ odběratele",
+  "Měna", "Základ celkem", "DPH celkem", "Celkem s DPH", "K úhradě",
+  "Způsob platby", "Variabilní symbol", "Číslo účtu", "IBAN",
+  "Přenesená daň. povinnost", "Zjednodušený daň. doklad",
+  "Položka č.", "Popis položky", "Kód produktu", "Množství", "Jednotka",
+  "Cena/ks bez DPH", "Cena/ks s DPH", "Základ", "Sazba DPH %",
+  "DPH", "Celkem s DPH (řádek)", "Spolehlivost extrakce"
+].freeze
+
 Fazole.configure do |config|
   config.gemini_api_key = ENV.fetch("GEMINI_API_KEY")
 end
@@ -42,59 +66,47 @@ end
 source_dir = File.expand_path("../data/source", __dir__)
 requirements = File.read(File.join(source_dir, "requirements.yml"))
 
-images = Dir.glob(File.join(source_dir, "*.{jpeg,jpg,png,gif,webp,pdf}")).sort
-abort "No files found in #{source_dir}" if images.empty?
+sources = Dir.glob(File.join(source_dir, "*.{jpeg,jpg,png,gif,webp,pdf}")).sort
+abort "No files found in #{source_dir}" if sources.empty?
 
 output_dir = File.join(source_dir, "..", "output")
 FileUtils.rm_rf(output_dir)
 Dir.mkdir(output_dir)
 
-results = images.map do |image|
-  puts "Processing #{File.basename(image)}..."
-  json = Fazole.extract(image: image, requirements: requirements)
+entries = sources.map do |source_file|
+  original_name = File.basename(source_file)
+  puts "Processing #{original_name}..."
+  json = Fazole.extract(image: source_file, requirements: requirements)
 
   basename = output_basename(json["invoice"] || json)
-  output_file = File.join(output_dir, "#{basename}.json")
-  n = 1
-  while File.exist?(output_file)
-    output_file = File.join(output_dir, "#{basename}-#{n}.json")
-    n += 1
-  end
-  File.write(output_file, JSON.pretty_generate(json))
-  puts "  -> #{output_file}"
+  ext = File.extname(source_file)
 
-  json
+  json_path = unique_path(output_dir, basename, ".json")
+  actual_basename = File.basename(json_path, ".json")
+
+  FileUtils.cp(source_file, File.join(output_dir, "#{actual_basename}#{ext}"))
+  File.write(json_path, JSON.pretty_generate(json))
+  puts "  -> #{actual_basename}.json"
+
+  { original: original_name, basename: actual_basename, json_path: json_path }
 end
 
-puts "\nExtracted #{results.size} invoice(s)."
+puts "\nExtracted #{entries.size} invoice(s)."
 
 # Generate ISDOC XML files
-json_files = Dir.glob(File.join(output_dir, "*.json")).sort
-json_files.each do |json_file|
-  data = JSON.parse(File.read(json_file))
+entries.each do |entry|
+  data = JSON.parse(File.read(entry[:json_path]))
   xml = Fazole.to_isdoc(data)
-  isdoc_file = json_file.sub(/\.json$/, ".isdoc")
-  File.write(isdoc_file, xml)
-  puts "  ISDOC -> #{File.basename(isdoc_file)}"
+  isdoc_path = entry[:json_path].sub(/\.json$/, ".isdoc")
+  File.write(isdoc_path, xml)
+  puts "  ISDOC -> #{entry[:basename]}.isdoc"
 end
 
 # Generate CSV summary
-CSV_HEADERS = %w[
-  source_file document_type supplier_invoice_number issue_date taxable_supply_date due_date
-  supplier_name supplier_ico supplier_dic supplier_street supplier_city supplier_postal_code
-  customer_name customer_ico customer_dic
-  currency net_total vat_total gross_total amount_due
-  payment_method variable_symbol account_number_local iban
-  reverse_charge simplified_tax_document
-  line_position line_description line_product_code line_quantity line_unit
-  line_unit_price_net line_unit_price_gross line_net_amount line_vat_rate line_vat_amount line_gross_amount
-  extraction_confidence
-].freeze
-
 csv_path = File.join(output_dir, "invoices.csv")
 CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
-  json_files.each do |json_file|
-    data = JSON.parse(File.read(json_file))
+  entries.each do |entry|
+    data = JSON.parse(File.read(entry[:json_path]))
     inv = data["invoice"]
     supplier = inv.dig("parties", "supplier") || {}
     customer = inv.dig("parties", "customer") || {}
@@ -104,7 +116,8 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
     dates = inv["dates"] || {}
 
     base = [
-      File.basename(json_file), inv["document_type"], inv["supplier_invoice_number"],
+      entry[:original], entry[:basename],
+      inv["document_type"], inv["supplier_invoice_number"],
       dates["issue_date"], dates["taxable_supply_date"], dates["due_date"],
       supplier["name"], supplier["ico"], supplier["dic"],
       supplier.dig("address", "street"), supplier.dig("address", "city"), supplier.dig("address", "postal_code"),
@@ -130,5 +143,5 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
   end
 end
 
-puts "  CSV  -> #{File.basename(csv_path)}"
-puts "\nDone. #{json_files.size} JSON + #{json_files.size} ISDOC + 1 CSV"
+puts "  CSV  -> invoices.csv"
+puts "\nDone. #{entries.size} originals + #{entries.size} JSON + #{entries.size} ISDOC + 1 CSV"

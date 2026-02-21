@@ -19,16 +19,18 @@ json_files.each do |json_file|
   puts "  ISDOC -> #{File.basename(isdoc_file)}"
 end
 
-CSV_HEADERS = %w[
-  source_file document_type supplier_invoice_number issue_date taxable_supply_date due_date
-  supplier_name supplier_ico supplier_dic supplier_street supplier_city supplier_postal_code
-  customer_name customer_ico customer_dic
-  currency net_total vat_total gross_total amount_due
-  payment_method variable_symbol account_number_local iban
-  reverse_charge simplified_tax_document
-  line_position line_description line_product_code line_quantity line_unit
-  line_unit_price_net line_unit_price_gross line_net_amount line_vat_rate line_vat_amount line_gross_amount
-  extraction_confidence
+CSV_HEADERS = [
+  "Soubor", "Typ dokladu", "Číslo faktury",
+  "Datum vystavení", "DÚZP", "Datum splatnosti",
+  "Dodavatel", "IČO dodavatele", "DIČ dodavatele",
+  "Ulice dodavatele", "Město dodavatele", "PSČ dodavatele",
+  "Odběratel", "IČO odběratele", "DIČ odběratele",
+  "Měna", "Základ celkem", "DPH celkem", "Celkem s DPH", "K úhradě",
+  "Způsob platby", "Variabilní symbol", "Číslo účtu", "IBAN",
+  "Přenesená daň. povinnost", "Zjednodušený daň. doklad",
+  "Položka č.", "Popis položky", "Kód produktu", "Množství", "Jednotka",
+  "Cena/ks bez DPH", "Cena/ks s DPH", "Základ", "Sazba DPH %",
+  "DPH", "Celkem s DPH (řádek)", "Spolehlivost extrakce"
 ].freeze
 
 csv_path = File.join(output_dir, "invoices.csv")
@@ -70,5 +72,5 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
   end
 end
 
-puts "  CSV  -> #{File.basename(csv_path)}"
+puts "  CSV  -> invoices.csv"
 puts "\nDone. #{json_files.size} ISDOC + 1 CSV"
