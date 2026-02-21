@@ -6,4 +6,6 @@
 /pkg/
 /spec/reports/
 /tmp/
+/data/
 .env
+.DS_Store
