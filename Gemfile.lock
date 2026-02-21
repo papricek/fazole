@@ -9,6 +9,7 @@ GEM
   specs:
     base64 (0.3.0)
     date (3.5.1)
+    dotenv (3.2.0)
     erb (6.0.1)
     event_stream_parser (1.0.0)
     faraday (2.14.1)
@@ -68,6 +69,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  dotenv
   fazole!
   irb
   rake (~> 13.0)
