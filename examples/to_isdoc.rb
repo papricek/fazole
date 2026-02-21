@@ -20,7 +20,7 @@ json_files.each do |json_file|
 end
 
 CSV_HEADERS = [
-  "Soubor", "Typ dokladu", "Číslo faktury",
+  "Původní soubor", "Nový soubor", "Typ dokladu", "Číslo faktury",
   "Datum vystavení", "DÚZP", "Datum splatnosti",
   "Dodavatel", "IČO dodavatele", "DIČ dodavatele",
   "Ulice dodavatele", "Město dodavatele", "PSČ dodavatele",
@@ -46,7 +46,8 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
     dates = inv["dates"] || {}
 
     base = [
-      File.basename(json_file), inv["document_type"], inv["supplier_invoice_number"],
+      data["_source_file"] || File.basename(json_file), File.basename(json_file, ".json"),
+      inv["document_type"], inv["supplier_invoice_number"],
       dates["issue_date"], dates["taxable_supply_date"], dates["due_date"],
       supplier["name"], supplier["ico"], supplier["dic"],
       supplier.dig("address", "street"), supplier.dig("address", "city"), supplier.dig("address", "postal_code"),
@@ -56,16 +57,18 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
       flags["reverse_charge"], flags["simplified_tax_document"]
     ]
 
+    empty_base = [nil] * base.size
     items = inv["line_items"] || []
     if items.empty?
       csv << base + [nil] * 11 + [inv.dig("extraction", "confidence")]
     else
-      items.each do |item|
-        csv << base + [
+      items.each_with_index do |item, i|
+        row_base = i == 0 ? base : empty_base
+        csv << row_base + [
           item["position"], item["description"], item["product_code"],
           item["quantity"], item["unit"], item["unit_price_net"], item["unit_price_gross"],
           item["net_amount"], item["vat_rate"], item["vat_amount"], item["gross_amount"],
-          inv.dig("extraction", "confidence")
+          i == 0 ? inv.dig("extraction", "confidence") : nil
         ]
       end
     end

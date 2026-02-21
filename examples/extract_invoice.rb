@@ -84,6 +84,7 @@ entries = sources.map do |source_file|
   json_path = unique_path(output_dir, basename, ".json")
   actual_basename = File.basename(json_path, ".json")
 
+  json["_source_file"] = original_name
   FileUtils.cp(source_file, File.join(output_dir, "#{actual_basename}#{ext}"))
   File.write(json_path, JSON.pretty_generate(json))
   puts "  -> #{actual_basename}.json"
@@ -127,16 +128,18 @@ CSV.open(csv_path, "w", headers: CSV_HEADERS, write_headers: true) do |csv|
       flags["reverse_charge"], flags["simplified_tax_document"]
     ]
 
+    empty_base = [nil] * base.size
     items = inv["line_items"] || []
     if items.empty?
       csv << base + [nil] * 11 + [inv.dig("extraction", "confidence")]
     else
-      items.each do |item|
-        csv << base + [
+      items.each_with_index do |item, i|
+        row_base = i == 0 ? base : empty_base
+        csv << row_base + [
           item["position"], item["description"], item["product_code"],
           item["quantity"], item["unit"], item["unit_price_net"], item["unit_price_gross"],
           item["net_amount"], item["vat_rate"], item["vat_amount"], item["gross_amount"],
-          inv.dig("extraction", "confidence")
+          i == 0 ? inv.dig("extraction", "confidence") : nil
         ]
       end
     end
