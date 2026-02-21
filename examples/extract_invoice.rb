@@ -4,6 +4,7 @@ require "bundler/setup"
 require "dotenv/load"
 require "fazole"
 require "json"
+require "fileutils"
 
 TRANSLITERATION = {
   "á" => "a", "č" => "c", "ď" => "d", "é" => "e", "ě" => "e", "í" => "i",
@@ -44,7 +45,8 @@ images = Dir.glob(File.join(source_dir, "*.{jpeg,jpg,png,gif,webp,pdf}")).sort
 abort "No files found in #{source_dir}" if images.empty?
 
 output_dir = File.join(source_dir, "..", "output")
-Dir.mkdir(output_dir) unless Dir.exist?(output_dir)
+FileUtils.rm_rf(output_dir)
+Dir.mkdir(output_dir)
 
 results = images.map do |image|
   puts "Processing #{File.basename(image)}..."
