@@ -5,6 +5,34 @@ require "dotenv/load"
 require "fazole"
 require "json"
 
+TRANSLITERATION = {
+  "á" => "a", "č" => "c", "ď" => "d", "é" => "e", "ě" => "e", "í" => "i",
+  "ň" => "n", "ó" => "o", "ř" => "r", "š" => "s", "ť" => "t", "ú" => "u",
+  "ů" => "u", "ý" => "y", "ž" => "z",
+  "Á" => "a", "Č" => "c", "Ď" => "d", "É" => "e", "Ě" => "e", "Í" => "i",
+  "Ň" => "n", "Ó" => "o", "Ř" => "r", "Š" => "s", "Ť" => "t", "Ú" => "u",
+  "Ů" => "u", "Ý" => "y", "Ž" => "z", "ö" => "o", "ü" => "u", "ä" => "a",
+  "ß" => "ss"
+}.freeze
+
+def parameterize(string)
+  result = string.to_s.downcase
+  result = result.gsub(/[#{TRANSLITERATION.keys.join}]/i) { |c| TRANSLITERATION[c] || TRANSLITERATION[c.downcase] || c }
+  result = result.gsub(/[^a-z0-9\-_]+/, "-")
+  result = result.gsub(/-{2,}/, "-")
+  result.sub(/^-/, "").sub(/-$/, "")
+end
+
+def output_basename(invoice)
+  supplier = invoice.dig("parties", "supplier", "name")
+  gross = invoice.dig("money", "totals", "gross_total")
+  vs = invoice.dig("payment", "variable_symbol") || invoice["supplier_invoice_number"]
+
+  gross = gross.to_f.round.to_s if gross
+  parts = [parameterize(supplier), gross, parameterize(vs)].compact.reject(&:empty?)
+  parts.join("-")
+end
+
 Fazole.configure do |config|
   config.gemini_api_key = ENV.fetch("GEMINI_API_KEY")
 end
@@ -22,7 +50,7 @@ results = images.map do |image|
   puts "Processing #{File.basename(image)}..."
   json = Fazole.extract(image: image, requirements: requirements)
 
-  basename = File.basename(image, File.extname(image))
+  basename = output_basename(json["invoice"] || json)
   output_file = File.join(output_dir, "#{basename}.json")
   File.write(output_file, JSON.pretty_generate(json))
   puts "  -> #{output_file}"
