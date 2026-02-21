@@ -40,8 +40,8 @@ end
 source_dir = File.expand_path("../data/source", __dir__)
 requirements = File.read(File.join(source_dir, "requirements.yml"))
 
-images = Dir.glob(File.join(source_dir, "*.{jpeg,jpg,png,gif,webp}")).sort
-abort "No images found in #{source_dir}" if images.empty?
+images = Dir.glob(File.join(source_dir, "*.{jpeg,jpg,png,gif,webp,pdf}")).sort
+abort "No files found in #{source_dir}" if images.empty?
 
 output_dir = File.join(source_dir, "..", "output")
 Dir.mkdir(output_dir) unless Dir.exist?(output_dir)
@@ -52,6 +52,11 @@ results = images.map do |image|
 
   basename = output_basename(json["invoice"] || json)
   output_file = File.join(output_dir, "#{basename}.json")
+  n = 1
+  while File.exist?(output_file)
+    output_file = File.join(output_dir, "#{basename}-#{n}.json")
+    n += 1
+  end
   File.write(output_file, JSON.pretty_generate(json))
   puts "  -> #{output_file}"
 
