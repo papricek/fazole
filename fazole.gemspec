@@ -5,8 +5,8 @@ require_relative 'lib/fazole/version'
 Gem::Specification.new do |spec|
   spec.name = 'fazole'
   spec.version = Fazole::VERSION
-  spec.authors = ['Papricek']
-  spec.email = ['patrikjira@gmail.com']
+  spec.authors = [ 'Papricek' ]
+  spec.email = [ 'patrikjira@gmail.com' ]
 
   spec.summary = 'Extract structured invoice data from images and generate ISDOC XML'
   spec.description = 'Fazole extracts invoice data from images via Gemini API and generates ISDOC 6.0.2 XML.'
@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   end
   spec.bindir = 'exe'
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
-  spec.require_paths = ['lib']
+  spec.require_paths = [ 'lib' ]
 
   spec.add_dependency 'builder'
   spec.add_dependency 'caxlsx'

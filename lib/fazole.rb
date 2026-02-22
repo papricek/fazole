@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'ruby_llm'
+require "ruby_llm"
 
-require_relative 'fazole/version'
-require_relative 'fazole/configuration'
-require_relative 'fazole/extractor'
-require_relative 'fazole/isdoc_builder'
+require_relative "fazole/version"
+require_relative "fazole/configuration"
+require_relative "fazole/extractor"
+require_relative "fazole/isdoc_builder"
 
 module Fazole
   class Error < StandardError; end

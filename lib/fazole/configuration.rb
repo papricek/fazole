@@ -5,7 +5,7 @@ module Fazole
     attr_accessor :gemini_api_key, :model
 
     def initialize
-      @model = 'gemini-3-flash-preview'
+      @model = "gemini-3-flash-preview"
     end
 
     def apply!

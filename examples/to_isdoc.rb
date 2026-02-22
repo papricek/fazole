@@ -20,8 +20,8 @@ HEADERS = [
   'DPH', 'Celkem s DPH (řádek)', 'Spolehlivost extrakce'
 ].freeze
 
-MONEY_COLS = [17, 18, 19, 20, 32, 33, 34, 36, 37].freeze
-PCT_COLS = [35, 38].freeze
+MONEY_COLS = [ 17, 18, 19, 20, 32, 33, 34, 36, 37 ].freeze
+PCT_COLS = [ 35, 38 ].freeze
 
 def invoice_rows(data, json_basename)
   inv = data['invoice']
@@ -44,12 +44,12 @@ def invoice_rows(data, json_basename)
     flags['reverse_charge'], flags['simplified_tax_document']
   ]
 
-  empty_base = [nil] * base.size
+  empty_base = [ nil ] * base.size
   items = inv['line_items'] || []
   rows = []
 
   if items.empty?
-    rows << { base: base, line: [nil] * 11 + [inv.dig('extraction', 'confidence')], first: true }
+    rows << { base: base, line: [ nil ] * 11 + [ inv.dig('extraction', 'confidence') ], first: true }
   else
     items.each_with_index do |item, i|
       rows << {
@@ -121,14 +121,14 @@ def generate_xlsx(xlsx_path, all_rows)
                    else invoice_style
                    end
                  end
-               else
+      else
                  values.map.with_index do |_, col|
                    if MONEY_COLS.include?(col) then line_money_style
                    elsif PCT_COLS.include?(col) then line_pct_style
                    else line_style
                    end
                  end
-               end
+      end
       sheet.add_row values, style: styles
     end
 
