@@ -3,6 +3,7 @@ PATH
   specs:
     fazole (0.1.0)
       builder
+      caxlsx
       ruby_llm
 
 GEM
@@ -10,6 +11,11 @@ GEM
   specs:
     base64 (0.3.0)
     builder (3.3.0)
+    caxlsx (4.4.1)
+      htmlentities (~> 4.3, >= 4.3.4)
+      marcel (~> 1.0)
+      nokogiri (~> 1.10, >= 1.10.4)
+      rubyzip (>= 2.4, < 4)
     date (3.5.1)
     dotenv (3.2.0)
     erb (6.0.1)
@@ -24,6 +30,7 @@ GEM
       net-http (~> 0.5)
     faraday-retry (2.4.0)
       faraday (~> 2.0)
+    htmlentities (4.4.2)
     io-console (0.8.2)
     irb (1.17.0)
       pp (>= 0.6.0)
@@ -36,6 +43,8 @@ GEM
     multipart-post (2.4.1)
     net-http (0.9.1)
       uri (>= 0.11.1)
+    nokogiri (1.19.1-arm64-darwin)
+      racc (~> 1.4)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -43,6 +52,7 @@ GEM
     psych (5.3.1)
       date
       stringio
+    racc (1.8.1)
     rake (13.3.1)
     rdoc (7.2.0)
       erb
@@ -61,6 +71,7 @@ GEM
       ruby_llm-schema (~> 0)
       zeitwerk (~> 2)
     ruby_llm-schema (0.3.0)
+    rubyzip (3.2.2)
     stringio (3.2.0)
     tsort (0.2.0)
     uri (1.1.1)
@@ -68,7 +79,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-24
-  ruby
+  arm64-darwin-25
 
 DEPENDENCIES
   dotenv
