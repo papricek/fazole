@@ -8,7 +8,7 @@ require "digest"
 module Fazole
   class IsdocBuilder
     NAMESPACE = "http://isdoc.cz/namespace/2013"
-    VERSION = "6.0.2"
+    VERSION = "6.0.1"
     VAT_CALCULATION_METHOD = "0"
     PAYMENT_MEANS_CODE = "42"
 
@@ -116,9 +116,10 @@ module Fazole
       xml.TaxPointDate dig("dates", "taxable_supply_date") || dig("dates", "issue_date") || ""
       xml.VATApplicable vat_applicable?
       xml.ElectronicPossibilityAgreementReference
-      xml.Note note_text
+      note = note_text
+      xml.Note note unless note.empty?
       xml.LocalCurrencyCode dig("money", "currency") || "CZK"
-      xml.CurrRate "1.0"
+      xml.CurrRate "1"
       xml.RefCurrRate "1"
     end
 
@@ -127,9 +128,7 @@ module Fazole
       customer = dig("parties", "customer") || {}
 
       build_party_section(xml, "AccountingSupplierParty", supplier)
-      build_party_section(xml, "SellerSupplierParty", supplier)
       build_party_section(xml, "AccountingCustomerParty", customer)
-      build_party_section(xml, "BuyerCustomerParty", customer)
     end
 
     def build_party_section(xml, section_name, party)
@@ -146,17 +145,15 @@ module Fazole
             end
           end
 
-          address = party["address"]
-          if address
-            xml.PostalAddress do
-              xml.StreetName address["street"] if address["street"]
-              xml.BuildingNumber
-              xml.CityName address["city"] if address["city"]
-              xml.PostalZone address["postal_code"] if address["postal_code"]
-              xml.Country do
-                xml.IdentificationCode address["country_code"] || "CZ"
-                xml.Name country_name_for(address["country_code"] || "CZ")
-              end
+          address = party["address"] || {}
+          xml.PostalAddress do
+            xml.StreetName address["street"] if address["street"]
+            xml.BuildingNumber address["building_number"]
+            xml.CityName address["city"] if address["city"]
+            xml.PostalZone address["postal_code"] if address["postal_code"]
+            xml.Country do
+              xml.IdentificationCode address["country_code"]
+              xml.Name address["country_code"] ? country_name_for(address["country_code"]) : nil
             end
           end
 
@@ -191,6 +188,7 @@ module Fazole
             xml.ClassifiedTaxCategory do
               xml.Percent format_rate(item["vat_rate"])
               xml.VATCalculationMethod VAT_CALCULATION_METHOD
+              xml.VATApplicable vat_applicable?
             end
 
             xml.Item do
@@ -227,6 +225,8 @@ module Fazole
             xml.DifferenceTaxInclusiveAmount format_decimal(inclusive)
             xml.TaxCategory do
               xml.Percent format_rate(entry["rate"])
+              xml.VATApplicable vat_applicable?
+              xml.LocalReverseChargeFlag reverse_charge?
             end
           end
         end
@@ -273,6 +273,7 @@ module Fazole
       bank_info = BANKS[bank_code] || { name: "", bic: "" }
       bic = payment["bic"] || bank_info[:bic]
       variable_symbol = payment["variable_symbol"]
+      constant_symbol = payment["constant_symbol"]
       gross = to_decimal(dig("money", "totals", "gross_total"))
 
       xml.PaymentMeans do
@@ -284,9 +285,10 @@ module Fazole
             xml.ID cleaned_account
             xml.BankCode bank_code
             xml.Name bank_info[:name]
-            xml.IBAN iban
+            xml.IBAN format_iban(iban)
             xml.BIC bic
             xml.VariableSymbol variable_symbol if variable_symbol
+            xml.ConstantSymbol constant_symbol if constant_symbol
           end
         end
       end
@@ -316,6 +318,10 @@ module Fazole
 
     def vat_applicable?
       !dig("flags", "reverse_charge")
+    end
+
+    def reverse_charge?
+      !!dig("flags", "reverse_charge")
     end
 
     def note_text
@@ -355,6 +361,11 @@ module Fazole
       return "0" if value.nil?
 
       BigDecimal(value.to_s).to_i.to_s
+    end
+
+    def format_iban(iban)
+      compact = iban.delete(" ")
+      compact.scan(/.{1,4}/).join(" ")
     end
 
     def compute_iban(account_id, bank_code)
