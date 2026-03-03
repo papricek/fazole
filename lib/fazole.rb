@@ -5,6 +5,7 @@ require "ruby_llm"
 require_relative "fazole/version"
 require_relative "fazole/configuration"
 require_relative "fazole/extractor"
+require_relative "fazole/contact_finder"
 require_relative "fazole/isdoc_builder"
 
 module Fazole
@@ -23,6 +24,10 @@ module Fazole
 
     def extract(image:, requirements:)
       Extractor.new(image: image, requirements: requirements, model: configuration.model).call
+    end
+
+    def find_contact(company_name:, ico:)
+      ContactFinder.new(company_name: company_name, ico: ico, model: configuration.model).call
     end
 
     def to_isdoc(invoice_data)

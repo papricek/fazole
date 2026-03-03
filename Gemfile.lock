@@ -4,6 +4,7 @@ PATH
     fazole (0.1.0)
       builder
       caxlsx
+      csv
       ruby_llm
 
 GEM
@@ -33,6 +34,7 @@ GEM
       rubyzip (>= 2.4, < 4)
     concurrent-ruby (1.3.6)
     connection_pool (3.0.2)
+    csv (3.3.5)
     date (3.5.1)
     dotenv (3.2.0)
     drb (2.2.3)
