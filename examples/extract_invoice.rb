@@ -195,7 +195,7 @@ Fazole.configure do |config|
 end
 
 source_dir = File.expand_path('../data/source', __dir__)
-requirements = File.read(File.join(source_dir, 'requirements.yml'))
+requirements = File.read(File.expand_path('../requirements/dph.yml', __dir__))
 
 sources = Dir.glob(File.join(source_dir, '*.{jpeg,jpg,png,gif,webp,pdf}')).sort
 abort "No files found in #{source_dir}" if sources.empty?

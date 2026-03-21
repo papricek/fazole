@@ -1,0 +1,148 @@
+# Invoice data schema (Ruby-friendly types)
+# Notes:
+# - Use ISO-8601 for dates: "YYYY-MM-DD" (Ruby Date.parse)
+# - Use BigDecimal-safe strings for money/quantities (Ruby BigDecimal)
+# - Use integer cents (or minor_units) alongside decimal strings if you prefer.
+# - Amounts: choose ONE canonical representation in your app (recommended: decimal strings + currency)
+
+invoice:
+  # --- 1) Document identity ---
+  id: "inv_01HXYZ..."              # String (your internal ID; e.g., SecureRandom.uuid / ULID)
+  document_type: "received_invoice" # String enum: received_invoice|issued_invoice|credit_note|advance_invoice|proforma|receipt|other
+  supplier_invoice_number: "2026-000123" # String
+  original_invoice_reference: null # String|NilClass (used for credit_note/corrections)
+  source:
+    kind: "upload"                 # String enum: upload|email|scan|api|other
+    received_at: "2026-02-21T10:15:30Z" # String (Time ISO-8601; Ruby Time.iso8601)
+    filename: "invoice.pdf"        # String|NilClass
+    content_type: "application/pdf" # String|NilClass
+    sha256: "..."                  # String|NilClass
+
+  # --- 2) Parties ---
+  parties:
+    supplier:
+      name: "ACME s.r.o."          # String
+      legal_name: null             # String|NilClass
+      ico: "01234567"              # String|NilClass
+      dic: "CZ01234567"            # String|NilClass (VAT ID)
+      vat_registered: true         # TrueClass|FalseClass|NilClass
+      address:
+        street: "Ulice 12"         # String|NilClass
+        city: "Praha"              # String|NilClass
+        postal_code: "11000"       # String|NilClass
+        country_code: "CZ"         # String (ISO 3166-1 alpha-2)
+      contact:
+        email: "billing@acme.cz"   # String|NilClass
+        phone: null                # String|NilClass
+
+    customer:
+      name: "Patrik Jíra"          # String
+      legal_name: null             # String|NilClass
+      ico: null                    # String|NilClass
+      dic: null                    # String|NilClass
+      vat_registered: null         # TrueClass|FalseClass|NilClass
+      address:
+        street: null               # String|NilClass
+        city: null                 # String|NilClass
+        postal_code: null          # String|NilClass
+        country_code: "CZ"         # String
+      contact:
+        email: null                # String|NilClass
+        phone: null                # String|NilClass
+
+  # --- 3) Key dates (VAT/accounting) ---
+  dates:
+    issue_date: "2026-02-10"       # String (Date)
+    taxable_supply_date: "2026-02-10" # String|NilClass (DUZP)
+    due_date: "2026-02-24"         # String|NilClass (Date)
+    delivery_period:
+      from: null                   # String|NilClass (Date)
+      to: null                     # String|NilClass (Date)
+
+  # --- 4) Payment & identifiers ---
+  payment:
+    method: "bank_transfer"        # String enum: bank_transfer|cash|card|cod|other
+    iban: "CZ6508000000192000145399" # String|NilClass
+    bic: null                      # String|NilClass
+    account_number_local: "192000145399/0800" # String|NilClass (as printed)
+    variable_symbol: "2026000123"  # String|NilClass
+    specific_symbol: null          # String|NilClass
+    constant_symbol: null          # String|NilClass
+    paid: false                    # TrueClass|FalseClass
+    paid_at: null                  # String|NilClass (Time ISO-8601)
+
+  # --- 5) Currency & totals ---
+  money:
+    currency: "CZK"                # String (ISO 4217)
+    rounding_mode: "bankers"       # String enum: bankers|half_up|half_down|down|up|none
+    totals:
+      # Decimal strings for BigDecimal("123.45")
+      net_total: "1000.00"         # String|NilClass (sum of bases)
+      vat_total: "210.00"          # String|NilClass
+      gross_total: "1210.00"       # String (total to pay)
+      amount_due: "1210.00"        # String|NilClass (if partial payments possible)
+
+    vat_breakdown:
+      # Array of VAT buckets (one per rate/regime)
+      - rate: "21.0"               # String (BigDecimal) OR "0.0"
+        base: "1000.00"            # String (BigDecimal)
+        vat: "210.00"              # String (BigDecimal)
+        gross: "1210.00"           # String|NilClass
+        regime: "standard"         # String enum: standard|reverse_charge|exempt|intra_eu|export|oss|ioss|other
+        exempt_reason: null        # String|NilClass (if exempt/0%)
+
+  # --- 6) Line items ---
+  line_items:
+    - position: 1                  # Integer
+      description: "Web hosting February 2026" # String
+      product_code: null           # String|NilClass
+      quantity: "1.0"              # String (BigDecimal)
+      unit: "pcs"                  # String|NilClass
+      unit_price_net: "1000.00"    # String|NilClass
+      unit_price_gross: null       # String|NilClass
+      discount_percent: null       # String|NilClass (BigDecimal as string, e.g. "10.0")
+      net_amount: "1000.00"        # String|NilClass (preferred if available)
+      vat_rate: "21.0"             # String|NilClass
+      vat_amount: "210.00"         # String|NilClass
+      gross_amount: "1210.00"      # String|NilClass
+      vat_regime: "standard"       # String enum as above
+
+  # --- 7) Accounting dimensions (often derived by rules, not extracted) ---
+  accounting:
+    posting_text: "ACME hosting 02/2026" # String|NilClass
+    expense_account: null          # String|NilClass (e.g., "518")
+    revenue_account: null          # String|NilClass
+    vat_code: null                 # String|NilClass (e.g., CZ classification / "členění DPH")
+    cost_center: null              # String|NilClass
+    project: null                  # String|NilClass
+    activity: null                 # String|NilClass
+    tags: []                       # Array<String>
+
+  # --- 8) Foreign currency specifics (if currency != CZK) ---
+  fx:
+    original_currency: null        # String|NilClass (ISO 4217)
+    exchange_rate: null            # String|NilClass (BigDecimal as string)
+    exchange_rate_date: null       # String|NilClass (Date)
+    totals_czk:
+      net_total: null              # String|NilClass
+      vat_total: null              # String|NilClass
+      gross_total: null            # String|NilClass
+
+  # --- 9) Compliance / flags ---
+  flags:
+    reverse_charge: false          # TrueClass|FalseClass
+    simplified_tax_document: false # TrueClass|FalseClass (zjednodušený daňový doklad)
+    correction_document: false     # TrueClass|FalseClass
+    intra_eu: false                # TrueClass|FalseClass
+    export: false                  # TrueClass|FalseClass
+
+  # --- 10) Extraction/audit ---
+  extraction:
+    status: "parsed"               # String enum: new|parsed|needs_review|failed
+    confidence: 0.92               # Float|NilClass
+    warnings: []                   # Array<String>
+    raw_text: null                 # String|NilClass (optional; store carefully)
+    fields_confidence:
+      supplier_invoice_number: 0.98 # Float|NilClass
+      gross_total: 0.95            # Float|NilClass
+      vat_breakdown: 0.80          # Float|NilClass
